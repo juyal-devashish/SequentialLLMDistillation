@@ -41,7 +41,7 @@ def main():
     
     # Config
     config = get_config()
-    config.model.student_model_name = "google/flan-t5-large"
+    config.model.student_model_name = "google/flan-t5-small" # DEBUG: Changed to small for testing
     config.data.dataset_name = "gsm8k"
     device = "cuda" if torch.cuda.is_available() else "cpu"
     

@@ -32,14 +32,24 @@ class StudentModel(nn.Module):
         super().__init__()
         
         self.model_name = model_name
-        self.device = device if torch.cuda.is_available() else "cpu"
         
+        # Smart device selection
+        if device == "cuda" and not torch.cuda.is_available():
+            if torch.backends.mps.is_available():
+                self.device = "mps"
+                print(f"Using MPS (Mac GPU) for {model_name}")
+            else:
+                self.device = "cpu"
+                print(f"CUDA not found, using CPU for {model_name}")
+        else:
+            self.device = device
+            
         # Determine model type
         if 'llama' in model_name.lower():
             self.model_type = 'causal'
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
-                dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                dtype=torch.float16 if self.device in ["cuda", "mps"] else torch.float32,
                 device_map="auto" if self.device == "cuda" else None
             )
             task_type = TaskType.CAUSAL_LM
@@ -47,7 +57,7 @@ class StudentModel(nn.Module):
             self.model_type = 'seq2seq'
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 model_name,
-                dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                dtype=torch.float16 if self.device in ["cuda", "mps"] else torch.float32,
                 device_map="auto" if self.device == "cuda" else None
             )
             task_type = TaskType.SEQ_2_SEQ_LM
@@ -55,7 +65,7 @@ class StudentModel(nn.Module):
             raise ValueError(f"Unsupported model: {model_name}")
         
         # Move to device if not using device_map
-        if self.device == "cpu":
+        if self.device in ["cpu", "mps"]:
             self.model = self.model.to(self.device)
         
         # Load tokenizer

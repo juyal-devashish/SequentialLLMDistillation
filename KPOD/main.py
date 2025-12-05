@@ -25,6 +25,7 @@ from training.step_difficulty import (
 from training.question_clustering import QuestionClusterer
 from training.progressive_scheduler import ProgressiveScheduler
 from training.kpod_trainer import KPODTrainer
+from training.sequential_trainer import SequentialDistillationManager
 from evaluation.evaluator import ReasoningEvaluator
 
 
@@ -271,7 +272,7 @@ def main():
     parser = argparse.ArgumentParser(description="KPOD Implementation - Complete Pipeline")
     parser.add_argument('--mode', type=str, required=True,
                        choices=['generate', 'train_token_weighting', 'calculate_difficulties',
-                               'cluster', 'train', 'evaluate', 'full_pipeline'],
+                               'cluster', 'train', 'evaluate', 'full_pipeline', 'sequential'],
                        help='Execution mode')
     parser.add_argument('--dataset', type=str, default='gsm8k',
                        choices=['gsm8k', 'commonsenseqa', 'asdiv', 'svamp'],
@@ -280,6 +281,8 @@ def main():
                        help='Student model name')
     parser.add_argument('--model_path', type=str, default=None,
                        help='Path to trained model (for evaluation)')
+    parser.add_argument('--student_chain', nargs='+', default=None,
+                        help='List of student models for sequential distillation')
     
     args = parser.parse_args()
     
@@ -328,6 +331,16 @@ def main():
             
             model_path = os.path.join(config.checkpoint_dir, "kpod_best_model")
             evaluate_model(config, args.dataset, model_path)
+            
+        elif args.mode == 'sequential':
+            print("Running Sequential Distillation Pipeline...")
+            
+            manager = SequentialDistillationManager(
+                config=config,
+                dataset_name=args.dataset,
+                student_chain=args.student_chain
+            )
+            manager.run_pipeline()
         
         print("\n" + "="*80)
         print("✓ Execution completed successfully!")

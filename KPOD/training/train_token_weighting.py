@@ -55,9 +55,23 @@ class TokenWeightingTrainer:
     
     def _prepare_batch(self, batch):
         """Prepare batch for training"""
-        questions = batch['question']
-        rationales = batch['rationale']
-        answers = batch['answer']
+        # Handle different dataset structures or dict types
+        if isinstance(batch, dict):
+            questions = batch['question']
+            answers = batch['answer']
+            rationales = batch['rationale'] if 'rationale' in batch else []
+        else:
+            # If batch is a list of items (e.g. from custom collate or raw list)
+            # Or if it's a huggingface dataset batch
+            try:
+                questions = batch['question']
+                answers = batch['answer']
+                rationales = batch['rationale']
+            except (KeyError, TypeError):
+                # Fallback for when attributes are direct lists (like in our truncated dataset)
+                questions = [item['question'] for item in batch]
+                answers = [item['answer'] for item in batch]
+                rationales = [item['rationale'] for item in batch]
         
         # Tokenize
         question_enc = self.module.tokenizer(
@@ -109,8 +123,29 @@ class TokenWeightingTrainer:
             # Prepare batch
             model_inputs = self._prepare_batch(batch)
             
+            # DEBUG: Check inputs for first batch
+            if batch_idx == 0 and epoch == 1:
+                print(f"\n[DEBUG] Batch 0 Inputs:")
+                print(f"  Question shape: {model_inputs['question_input_ids'].shape}")
+                print(f"  Rationale shape: {model_inputs['rationale_input_ids'].shape}")
+                print(f"  Answer shape: {model_inputs['answer_input_ids'].shape}")
+                
+                # Check if rationales are non-empty
+                r_ids = model_inputs['rationale_input_ids']
+                pad_id = self.module.tokenizer.pad_token_id
+                non_pads = (r_ids != pad_id).sum(dim=1)
+                print(f"  Rationale non-padding count: {non_pads}")
+            
             # Forward pass
             loss, info = self.module(**model_inputs)
+            
+            # DEBUG: Check loss
+            if batch_idx == 0 and epoch == 1:
+                print(f"  Loss: {loss.item()}")
+                print(f"  Lp: {info['lp'].item()}")
+                print(f"  Lm: {info['lm'].item()}")
+                if loss.item() == 0:
+                    print("  ⚠️ LOSS IS ZERO!")
             
             # Backward pass
             self.optimizer.zero_grad()
