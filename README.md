@@ -1,5 +1,9 @@
 # Sequential LLM Distillation
 
+> [!IMPORTANT]
+> **Archived: superseded by [ELI500Model-Sequential-Distillation](https://github.com/juyal-devashish/ELI500Model-Sequential-Distillation),** which holds the final code, the report and the results. This repository is the earlier KPOD-first version from the EECS 498 proposal stage, kept for history.
+
+
 This repository explores distillation and compression of Large Language Models (LLMs) — techniques that aim to transfer reasoning and knowledge from large, high-capacity models (teachers) into smaller, efficient models (students).  
 The goal is to retain emergent capabilities (reasoning, in-context learning, chain-of-thought) while significantly reducing inference cost.
 
